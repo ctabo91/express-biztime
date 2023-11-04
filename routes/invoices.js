@@ -31,7 +31,7 @@ router.get('/:id', async (req, res, next) =>{
         );
 
         if (result.rows.length === 0) {
-            throw new ExpressError(`There is no invoice with id: '${id}`, 404);
+            throw new ExpressError(`There is no invoice with id: ${id}`, 404);
         }
 
         const data = result.rows[0];
@@ -86,7 +86,7 @@ router.put('/:id', async (req, res, next) =>{
         );
 
         if (currResult.rows.length === 0) {
-            throw new ExpressError(`There is no invoice with id: '${id}`, 404);
+            throw new ExpressError(`There is no invoice with id: ${id}`, 404);
         }
 
         const currPaidDate = currResult.rows[0].paid_date;
@@ -126,7 +126,7 @@ router.delete('/:id', async (req, res, next) =>{
         );
 
         if (result.rows.length === 0) {
-            throw new ExpressError(`There is no invoice with id: '${id}`, 404);
+            throw new ExpressError(`There is no invoice with id: ${id}`, 404);
         }
         return res.json({status: 'deleted'});
     }catch(e){

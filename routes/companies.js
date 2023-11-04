@@ -5,7 +5,7 @@ const db = require("../db");
 const ExpressError = require("../expressError");
 
 
-router.get('/', async (req, res, next) =>{
+router.get('/', async (req, res, next) => {
     try{
         const result = await db.query(
             `SELECT code, name
@@ -19,13 +19,17 @@ router.get('/', async (req, res, next) =>{
 });
 
 
-router.get('/:code', async (req, res, next) =>{
+router.get('/:code', async (req, res, next) => {
     try{
         const {code} = req.params;
         const compResult = await db.query(
-            `SELECT code, name, description
-            FROM companies
-            WHERE code=$1`,
+            `SELECT c.code, c.name, c.description, i.industry
+            FROM companies AS c
+            LEFT JOIN companies_industries AS ci
+            ON c.code = ci.comp_code
+            LEFT JOIN industries AS i
+            ON ci.industry_code = i.code
+            WHERE c.code=$1`,
             [code]
         );
 
@@ -37,22 +41,21 @@ router.get('/:code', async (req, res, next) =>{
         );
 
         if (compResult.rows.length === 0) {
-            throw new ExpressError(`There is no company with code: '${code}`, 404);
+            throw new ExpressError(`There is no company with code: ${code}`, 404);
         }
 
-        const company = compResult.rows[0];
-        const invoices = invResult.rows;
+        const {name, description} = compResult.rows[0];
+        const industries = compResult.rows.map(r => r.industry);
+        const invoices = invResult.rows.map(inv => inv.id);
 
-        company.invoices = invoices.map(inv => inv.id);
-
-        return res.json({company: company});
+        return res.json({company: {code, name, description, industries, invoices}});
     }catch(e){
         return next(e);
     }
 });
 
 
-router.post('/', async (req, res, next) =>{
+router.post('/', async (req, res, next) => {
     try{
         const {name, description} = req.body;
         const code = slugify(name, {lower: true});
@@ -71,7 +74,7 @@ router.post('/', async (req, res, next) =>{
 });
 
 
-router.put('/:code', async (req, res, next) =>{
+router.put('/:code', async (req, res, next) => {
     try{
         const {code} = req.params;
         const {name, description} = req.body;
@@ -84,7 +87,7 @@ router.put('/:code', async (req, res, next) =>{
         );
         
         if (result.rows.length === 0) {
-            throw new ExpressError(`Can't update company with code: '${code}`, 404);
+            throw new ExpressError(`Can't update company with code: ${code}`, 404);
         }
         return res.json({company: result.rows[0]});
     }catch(e){
@@ -93,7 +96,7 @@ router.put('/:code', async (req, res, next) =>{
 });
 
 
-router.delete('/:code', async (req, res, next) =>{
+router.delete('/:code', async (req, res, next) => {
     try{
         const result = await db.query(
             `DELETE FROM companies
@@ -102,7 +105,7 @@ router.delete('/:code', async (req, res, next) =>{
         );
 
         if (result.rows.length === 0) {
-            throw new ExpressError(`There is no company with code: '${code}`, 404);
+            throw new ExpressError(`There is no company with code: ${code}`, 404);
         }
         return res.json({status: 'deleted'});
     }catch(e){

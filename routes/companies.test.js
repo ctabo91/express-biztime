@@ -6,18 +6,36 @@ const app = require("../app");
 const db = require("../db");
 
 let testCompany;
+let testIndustry;
+let testRelation;
 
 beforeEach(async () => {
-    const result = await db.query(
+    const compResult = await db.query(
         `INSERT INTO companies (code, name, description)
         VALUES ('apple', 'Apple Computer', 'Maker of OSX.')
         RETURNING  code, name, description`
     );
-    testCompany = result.rows[0];
+    testCompany = compResult.rows[0];
+
+    const indResult = await db.query(
+        `INSERT INTO industries (code, industry)
+        VALUES ('tech', 'Technology')
+        RETURNING code, industry`
+    );
+    testIndustry = indResult.rows[0];
+
+    const compIndResult = await db.query(
+        `INSERT INTO companies_industries (comp_code, industry_code)
+        VALUES ('apple', 'tech')
+        RETURNING comp_code, industry_code`
+    );
+    testRelation = compIndResult.rows[0];
 });
   
 afterEach(async () => {
     await db.query(`DELETE FROM companies`);
+    await db.query(`DELETE FROM industries`);
+    await db.query(`DELETE FROM companies_industries`);
 });
   
 afterAll(async () => {
@@ -46,6 +64,7 @@ describe('GET /companies/:code', () => {
                 code: 'apple',
                 name: 'Apple Computer',
                 description: 'Maker of OSX.',
+                industries: ['Technology'],
                 invoices: []
             }});
     });
@@ -76,7 +95,7 @@ describe('POST /companies', () => {
 });
 
 describe('PUT /companies/:code', () => {
-    test('Creates a single company', async () => {
+    test('Updates a single company', async () => {
         const res = await request(app)
         .put(`/companies/${testCompany.code}`)
         .send({
