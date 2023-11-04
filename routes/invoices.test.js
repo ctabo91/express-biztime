@@ -9,24 +9,31 @@ let testInvoice;
 let testCompany;
 
 beforeEach(async () => {
-    const compResult = await db.query(
+    let promises = [];
+
+    promises.push(db.query(
         `INSERT INTO companies (code, name, description)
         VALUES ('apple', 'Apple Computer', 'Maker of OSX.')
         RETURNING  code, name, description`
-    );
-    testCompany = compResult.rows[0];
-
-    const invResult = await db.query(
+    ));
+    promises.push(db.query(
         `INSERT INTO invoices (comp_code, amt, paid, paid_date)
         VALUES ('apple', 100, false, null)
         RETURNING  id, comp_code, amt, paid, add_date, paid_date`
-    );
+    ));
+
+    const results = await Promise.all(promises);
+    const [compResult, invResult] = results;
+
+    testCompany = compResult.rows[0];
     testInvoice = invResult.rows[0];
 });
   
 afterEach(async () => {
-    await db.query(`DELETE FROM invoices`);
-    await db.query(`DELETE FROM companies`);
+    await Promise.all([
+        db.query(`DELETE FROM companies`),
+        db.query(`DELETE FROM industries`)
+    ]);
 });
   
 afterAll(async () => {
@@ -60,7 +67,7 @@ describe('GET /invoices/:id', () => {
                 },
                 amt: 100,
                 paid: false,
-                add_date: '2023-11-03T04:00:00.000Z',
+                add_date: '2023-11-04T04:00:00.000Z',
                 paid_date: null
             }});
     });
@@ -85,7 +92,7 @@ describe('POST /invoices', () => {
                 comp_code: 'apple',
                 amt: 200,
                 paid: false,
-                add_date: '2023-11-03T04:00:00.000Z',
+                add_date: '2023-11-04T04:00:00.000Z',
                 paid_date: null
             }
         });
@@ -107,7 +114,7 @@ describe('PUT /invoices/:id', () => {
                 comp_code: 'apple',
                 amt: 300,
                 paid: false,
-                add_date: '2023-11-03T04:00:00.000Z',
+                add_date: '2023-11-04T04:00:00.000Z',
                 paid_date: null
             }
         });

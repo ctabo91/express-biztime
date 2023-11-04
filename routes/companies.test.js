@@ -10,32 +10,38 @@ let testIndustry;
 let testRelation;
 
 beforeEach(async () => {
-    const compResult = await db.query(
+    let promises = [];
+
+    promises.push(db.query(
         `INSERT INTO companies (code, name, description)
         VALUES ('apple', 'Apple Computer', 'Maker of OSX.')
         RETURNING  code, name, description`
-    );
-    testCompany = compResult.rows[0];
-
-    const indResult = await db.query(
+    ));
+    promises.push(db.query(
         `INSERT INTO industries (code, industry)
         VALUES ('tech', 'Technology')
         RETURNING code, industry`
-    );
-    testIndustry = indResult.rows[0];
-
-    const compIndResult = await db.query(
+    ));
+    promises.push(db.query(
         `INSERT INTO companies_industries (comp_code, industry_code)
         VALUES ('apple', 'tech')
         RETURNING comp_code, industry_code`
-    );
+    ));
+
+    const results = await Promise.all(promises);
+    [compResult, indResult, compIndResult] = results;
+
+    testCompany = compResult.rows[0];
+    testIndustry = indResult.rows[0];
     testRelation = compIndResult.rows[0];
 });
   
 afterEach(async () => {
-    await db.query(`DELETE FROM companies`);
-    await db.query(`DELETE FROM industries`);
-    await db.query(`DELETE FROM companies_industries`);
+    await Promise.all([
+        db.query(`DELETE FROM companies`),
+        db.query(`DELETE FROM industries`),
+        db.query(`DELETE FROM companies_industries`)
+    ]);
 });
   
 afterAll(async () => {
